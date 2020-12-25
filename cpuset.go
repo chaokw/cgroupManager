@@ -1,13 +1,12 @@
 // +build linux
 
-package subsystem
+package cgroupManager
 
 import (
 	"os"
 	"path/filepath"
 
 	"github.com/moby/sys/mountinfo"
-	cgroups "cgroupManager"
 	"github.com/pkg/errors"
 )
 
@@ -23,24 +22,24 @@ func (s *CpusetGroup) Apply(path string, d *cgroupData) error {
 }
 
 func (s *CpusetGroup) AddPid(path string, pid int) error {
-        return cgroups.WriteCgroupProc(path, pid)
+        return WriteCgroupProc(path, pid)
 }
 
-func (s *CpusetGroup) Set(path string, cgroup *cgroups.CgroupConfig) error {
+func (s *CpusetGroup) Set(path string, cgroup *CgroupConfig) error {
 	if cgroup.Resources.CpusetCpus != "" {
-		if err := cgroups.WriteFile(path, "cpuset.cpus", cgroup.Resources.CpusetCpus); err != nil {
+		if err := WriteFile(path, "cpuset.cpus", cgroup.Resources.CpusetCpus); err != nil {
 			return err
 		}
 	}
 	if cgroup.Resources.CpusetMems != "" {
-		if err := cgroups.WriteFile(path, "cpuset.mems", cgroup.Resources.CpusetMems); err != nil {
+		if err := WriteFile(path, "cpuset.mems", cgroup.Resources.CpusetMems); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *CpusetGroup) GetStats(path string, stats *cgroups.Stats) error {
+func (s *CpusetGroup) GetStats(path string, stats *Stats) error {
 	return nil
 }
 
@@ -65,7 +64,7 @@ func getMount(dir string) (string, error) {
 	return mi[idx].Mountpoint, nil
 }
 
-func (s *CpusetGroup) ApplyDir(dir string, cgroup *cgroups.CgroupConfig, pid int) error {
+func (s *CpusetGroup) ApplyDir(dir string, cgroup *CgroupConfig, pid int) error {
 	if dir == "" {
 		return nil
 	}
@@ -84,14 +83,14 @@ func (s *CpusetGroup) ApplyDir(dir string, cgroup *cgroups.CgroupConfig, pid int
 		return err
 	}
 
-	return cgroups.WriteCgroupProc(dir, pid)
+	return WriteCgroupProc(dir, pid)
 }
 
 func getCpusetSubsystemSettings(parent string) (cpus, mems string, err error) {
-	if cpus, err = cgroups.ReadFile(parent, "cpuset.cpus"); err != nil {
+	if cpus, err = ReadFile(parent, "cpuset.cpus"); err != nil {
 		return
 	}
-	if mems, err = cgroups.ReadFile(parent, "cpuset.mems"); err != nil {
+	if mems, err = ReadFile(parent, "cpuset.mems"); err != nil {
 		return
 	}
 	return cpus, mems, nil
@@ -102,7 +101,7 @@ func getCpusetSubsystemSettings(parent string) (cpus, mems string, err error) {
 // its parent.
 func cpusetEnsureParent(current, root string) error {
 	parent := filepath.Dir(current)
-	if cgroups.CleanPath(parent) == root {
+	if CleanPath(parent) == root {
 		return nil
 	}
 	if parent == current {
@@ -130,12 +129,12 @@ func cpusetCopyIfNeeded(current, parent string) error {
 	}
 
 	if isEmptyCpuset(currentCpus) {
-		if err := cgroups.WriteFile(current, "cpuset.cpus", string(parentCpus)); err != nil {
+		if err := WriteFile(current, "cpuset.cpus", string(parentCpus)); err != nil {
 			return err
 		}
 	}
 	if isEmptyCpuset(currentMems) {
-		if err := cgroups.WriteFile(current, "cpuset.mems", string(parentMems)); err != nil {
+		if err := WriteFile(current, "cpuset.mems", string(parentMems)); err != nil {
 			return err
 		}
 	}
@@ -146,7 +145,7 @@ func isEmptyCpuset(str string) bool {
 	return str == "" || str == "\n"
 }
 
-func (s *CpusetGroup) ensureCpusAndMems(path string, cgroup *cgroups.CgroupConfig) error {
+func (s *CpusetGroup) ensureCpusAndMems(path string, cgroup *CgroupConfig) error {
 	if err := s.Set(path, cgroup); err != nil {
 		return err
 	}

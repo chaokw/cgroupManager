@@ -1,6 +1,6 @@
 // +build linux
 
-package subsystem
+package cgroupManager
 
 import (
 	"bufio"
@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	cgroups "cgroupManager"
 )
 
 const (
@@ -38,19 +36,19 @@ func (s *CpuacctGroup) Name() string {
 }
 
 func (s *CpuacctGroup) AddPid(path string, pid int) error {
-        return cgroups.WriteCgroupProc(path, pid)
+        return WriteCgroupProc(path, pid)
 }
 
 func (s *CpuacctGroup) Apply(path string, d *cgroupData) error {
 	return join(path, d.pid)
 }
 
-func (s *CpuacctGroup) Set(path string, cgroup *cgroups.CgroupConfig) error {
+func (s *CpuacctGroup) Set(path string, cgroup *CgroupConfig) error {
 	return nil
 }
 
-func (s *CpuacctGroup) GetStats(path string, stats *cgroups.Stats) error {
-	if !cgroups.PathExists(path) {
+func (s *CpuacctGroup) GetStats(path string, stats *Stats) error {
+	if !PathExists(path) {
 		return nil
 	}
 	userModeUsage, kernelModeUsage, err := getCpuUsageBreakdown(path)
@@ -58,7 +56,7 @@ func (s *CpuacctGroup) GetStats(path string, stats *cgroups.Stats) error {
 		return err
 	}
 
-	totalUsage, err := cgroups.GetCgroupParamUint(path, "cpuacct.usage")
+	totalUsage, err := GetCgroupParamUint(path, "cpuacct.usage")
 	if err != nil {
 		return err
 	}
@@ -93,7 +91,7 @@ func getCpuUsageBreakdown(path string) (uint64, uint64, error) {
 	// Expected format:
 	// user <usage in ticks>
 	// system <usage in ticks>
-	data, err := cgroups.ReadFile(path, cgroupCpuacctStat)
+	data, err := ReadFile(path, cgroupCpuacctStat)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -119,7 +117,7 @@ func getCpuUsageBreakdown(path string) (uint64, uint64, error) {
 
 func getPercpuUsage(path string) ([]uint64, error) {
 	percpuUsage := []uint64{}
-	data, err := cgroups.ReadFile(path, "cpuacct.usage_percpu")
+	data, err := ReadFile(path, "cpuacct.usage_percpu")
 	if err != nil {
 		return percpuUsage, err
 	}
@@ -137,7 +135,7 @@ func getPercpuUsageInModes(path string) ([]uint64, []uint64, error) {
 	usageKernelMode := []uint64{}
 	usageUserMode := []uint64{}
 
-	file, err := cgroups.OpenFile(path, cgroupCpuacctUsageAll, os.O_RDONLY)
+	file, err := OpenFile(path, cgroupCpuacctUsageAll, os.O_RDONLY)
 	if os.IsNotExist(err) {
 		return usageKernelMode, usageUserMode, nil
 	} else if err != nil {

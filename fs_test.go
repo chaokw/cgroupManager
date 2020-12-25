@@ -1,17 +1,15 @@
 // +build linux
 
-package subsystem
+package cgroupManager
 
 import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	cgroups "cgroupManager"
 )
 
 func TestInvalidCgroupPath(t *testing.T) {
-	if cgroups.IsCgroup2UnifiedMode() {
+	if IsCgroup2UnifiedMode() {
 		t.Skip("cgroup v2 is not supported")
 	}
 
@@ -66,7 +64,7 @@ func TestInvalidCgroupPath(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.test, func(t *testing.T) {
-			config := &cgroups.CgroupConfig{Path: tc.path, Name: tc.name, Parent: tc.parent}
+			config := &CgroupConfig{Path: tc.path, Name: tc.name, Parent: tc.parent}
 
 			data, err := getCgroupData(config, 0)
 			if err != nil {
@@ -94,7 +92,7 @@ func TestInvalidCgroupPath(t *testing.T) {
 func TestTryDefaultCgroupRoot(t *testing.T) {
 	res := tryDefaultCgroupRoot()
 	exp := defaultCgroupRoot
-	if cgroups.IsCgroup2UnifiedMode() {
+	if IsCgroup2UnifiedMode() {
 		// checking that tryDefaultCgroupRoot does return ""
 		// in case /sys/fs/cgroup is not cgroup v1 root dir.
 		exp = ""

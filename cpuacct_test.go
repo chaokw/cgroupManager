@@ -1,11 +1,10 @@
 // +build linux
 
-package subsystem
+package cgroupManager
 
 import (
 	"reflect"
 	"testing"
-	cgroups "cgroupManager"
 )
 
 const (
@@ -35,13 +34,13 @@ func TestCpuacctStats(t *testing.T) {
 	})
 
 	cpuacct := &CpuacctGroup{}
-	actualStats := *cgroups.NewStats()
+	actualStats := *NewStats()
 	err := cpuacct.GetStats(helper.CgroupPath, &actualStats)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expectedStats := cgroups.CpuUsage{
+	expectedStats := CpuUsage{
 		TotalUsage: uint64(12262454190222160),
 		PercpuUsage: []uint64{1564936537989058, 1583937096487821, 1604195415465681, 1596445226820187,
 			1481069084155629, 1478735613864327, 1477610593414743, 1476362015778086},
@@ -69,13 +68,13 @@ func TestCpuacctStatsWithoutUsageAll(t *testing.T) {
 	})
 
 	cpuacct := &CpuacctGroup{}
-	actualStats := *cgroups.NewStats()
+	actualStats := *NewStats()
 	err := cpuacct.GetStats(helper.CgroupPath, &actualStats)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expectedStats := cgroups.CpuUsage{
+	expectedStats := CpuUsage{
 		TotalUsage: uint64(12262454190222160),
 		PercpuUsage: []uint64{1564936537989058, 1583937096487821, 1604195415465681, 1596445226820187,
 			1481069084155629, 1478735613864327, 1477610593414743, 1476362015778086},

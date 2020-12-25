@@ -1,6 +1,6 @@
 // +build linux
 
-package subsystem
+package cgroupManager
 
 import (
 	"errors"
@@ -8,8 +8,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	cgroups "cgroupManager"
 	"golang.org/x/sys/unix"
 )
 
@@ -25,14 +23,14 @@ func (s *FreezerGroup) Apply(path string, d *cgroupData) error {
 }
 
 func (s *FreezerGroup) AddPid(path string, pid int) error {
-        return cgroups.WriteCgroupProc(path, pid)
+        return WriteCgroupProc(path, pid)
 }
 
-func (s *FreezerGroup) Set(path string, cgroup *cgroups.CgroupConfig) error {
+func (s *FreezerGroup) Set(path string, cgroup *CgroupConfig) error {
 	switch cgroup.Resources.Freezer {
-	case cgroups.Frozen, cgroups.Thawed:
+	case Frozen, Thawed:
 		for {
-			if err := cgroups.WriteFile(path, "freezer.state", string(cgroup.Resources.Freezer)); err != nil {
+			if err := WriteFile(path, "freezer.state", string(cgroup.Resources.Freezer)); err != nil {
 				return err
 			}
 
@@ -46,7 +44,7 @@ func (s *FreezerGroup) Set(path string, cgroup *cgroups.CgroupConfig) error {
 
 			time.Sleep(1 * time.Millisecond)
 		}
-	case cgroups.Undefined:
+	case Undefined:
 		return nil
 	default:
 		return fmt.Errorf("Invalid argument '%s' to freezer.state", string(cgroup.Resources.Freezer))
@@ -55,29 +53,29 @@ func (s *FreezerGroup) Set(path string, cgroup *cgroups.CgroupConfig) error {
 	return nil
 }
 
-func (s *FreezerGroup) GetStats(path string, stats *cgroups.Stats) error {
+func (s *FreezerGroup) GetStats(path string, stats *Stats) error {
 	return nil
 }
 
-func (s *FreezerGroup) GetState(path string) (cgroups.FreezerState, error) {
+func (s *FreezerGroup) GetState(path string) (FreezerState, error) {
 	for {
-		state, err := cgroups.ReadFile(path, "freezer.state")
+		state, err := ReadFile(path, "freezer.state")
 		if err != nil {
 			if os.IsNotExist(err) || errors.Is(err, unix.ENODEV) {
 				err = nil
 			}
-			return cgroups.Undefined, err
+			return Undefined, err
 		}
 		switch strings.TrimSpace(state) {
 		case "THAWED":
-			return cgroups.Thawed, nil
+			return Thawed, nil
 		case "FROZEN":
-			return cgroups.Frozen, nil
+			return Frozen, nil
 		case "FREEZING":
 			time.Sleep(1 * time.Millisecond)
 			continue
 		default:
-			return cgroups.Undefined, fmt.Errorf("unknown freezer.state %q", state)
+			return Undefined, fmt.Errorf("unknown freezer.state %q", state)
 		}
 	}
 }

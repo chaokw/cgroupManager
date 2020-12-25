@@ -1,6 +1,6 @@
 // +build linux
 
-package subsystem
+package cgroupManager
 
 import (
 	"bufio"
@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	cgroups "cgroupManager"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
@@ -28,20 +27,20 @@ var errSubsystemDoesNotExist = errors.New("cgroup: subsystem does not exist")
 
 type subsystem interface {
 	Name() string
-	GetStats(path string, stats *cgroups.Stats) error
+	GetStats(path string, stats *Stats) error
 	Apply(path string, c *cgroupData) error
-	Set(path string, cgroup *cgroups.CgroupConfig) error
+	Set(path string, cgroup *CgroupConfig) error
 	AddPid(path string, pid int) error
 }
 
 type manager struct {
 	mu       sync.Mutex
-	cgroups  *cgroups.CgroupConfig
+	cgroups  *CgroupConfig
 	rootless bool
 	paths    map[string]string
 }
 
-func NewManager(cg *cgroups.CgroupConfig, paths map[string]string, rootless bool) cgroups.Manager {
+func NewManager(cg *CgroupConfig, paths map[string]string, rootless bool) Manager {
 	return &manager{
 		cgroups:  cg,
 		paths:    paths,
@@ -169,7 +168,7 @@ func getCgroupRoot() (string, error) {
 type cgroupData struct {
 	root      string
 	innerPath string
-	config    *cgroups.CgroupConfig
+	config    *CgroupConfig
 	pid       int
 }
 
@@ -206,7 +205,7 @@ func (m *manager) Apply(pid int) (err error) {
 	c := m.cgroups
 	m.paths = make(map[string]string)
 	if c.Paths != nil {
-		cgMap, err := cgroups.ParseCgroupFile("/proc/self/cgroup")
+		cgMap, err := ParseCgroupFile("/proc/self/cgroup")
 		if err != nil {
 			return err
 		}
@@ -215,7 +214,7 @@ func (m *manager) Apply(pid int) (err error) {
 				m.paths[name] = path
 			}
 		}
-		return cgroups.EnterPid(m.paths, pid)
+		return EnterPid(m.paths, pid)
 	}
 
 	d, err := getCgroupData(m.cgroups, pid)
@@ -228,7 +227,7 @@ func (m *manager) Apply(pid int) (err error) {
 		if err != nil {
 			// The non-presence of the devices subsystem is
 			// considered fatal for security reasons.
-			if cgroups.IsNotFound(err) && sys.Name() != "devices" {
+			if IsNotFound(err) && sys.Name() != "devices" {
 				continue
 			}
 			return err
@@ -257,7 +256,7 @@ func (m *manager) Destroy() error {
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return cgroups.RemovePaths(m.paths)
+	return RemovePaths(m.paths)
 }
 
 func (m *manager) Path(subsys string) string {
@@ -266,10 +265,10 @@ func (m *manager) Path(subsys string) string {
 	return m.paths[subsys]
 }
 
-func (m *manager) GetStats() (*cgroups.Stats, error) {
+func (m *manager) GetStats() (*Stats, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	stats := cgroups.NewStats()
+	stats := NewStats()
 	for _, sys := range subsystems {
 		path := m.paths[sys.Name()]
 		if path == "" {
@@ -282,7 +281,7 @@ func (m *manager) GetStats() (*cgroups.Stats, error) {
 	return stats, nil
 }
 
-func (m *manager) Set(container *cgroups.Config) error {
+func (m *manager) Set(container *Config) error {
 	if container.Cgroups == nil {
 		return nil
 	}
@@ -318,7 +317,7 @@ func (m *manager) Set(container *cgroups.Config) error {
 
 // Freeze toggles the container's freezer cgroup depending on the state
 // provided
-func (m *manager) Freeze(state cgroups.FreezerState) error {
+func (m *manager) Freeze(state FreezerState) error {
 	path := m.Path("freezer")
 	if m.cgroups == nil || path == "" {
 		return errors.New("cannot toggle freezer: cgroups not configured for container")
@@ -335,14 +334,14 @@ func (m *manager) Freeze(state cgroups.FreezerState) error {
 }
 
 func (m *manager) GetPids() ([]int, error) {
-	return cgroups.GetPids(m.Path("devices"))
+	return GetPids(m.Path("devices"))
 }
 
 func (m *manager) GetAllPids() ([]int, error) {
-	return cgroups.GetAllPids(m.Path("devices"))
+	return GetAllPids(m.Path("devices"))
 }
 
-func getCgroupData(c *cgroups.CgroupConfig, pid int) (*cgroupData, error) {
+func getCgroupData(c *CgroupConfig, pid int) (*cgroupData, error) {
 	root, err := getCgroupRoot()
 	if err != nil {
 		return nil, err
@@ -353,9 +352,9 @@ func getCgroupData(c *cgroups.CgroupConfig, pid int) (*cgroupData, error) {
 	}
 
 	// XXX: Do not remove this code. Path safety is important! -- cyphar
-	cgPath := cgroups.CleanPath(c.Path)
-	cgParent := cgroups.CleanPath(c.Parent)
-	cgName := cgroups.CleanPath(c.Name)
+	cgPath := CleanPath(c.Path)
+	cgParent := CleanPath(c.Parent)
+	cgName := CleanPath(c.Name)
 
 	innerPath := cgPath
 	if innerPath == "" {
@@ -373,7 +372,7 @@ func getCgroupData(c *cgroups.CgroupConfig, pid int) (*cgroupData, error) {
 func (raw *cgroupData) path(subsystem string) (string, error) {
 	// If the cgroup name/path is absolute do not look relative to the cgroup of the init process.
 	if filepath.IsAbs(raw.innerPath) {
-		mnt, err := cgroups.FindCgroupMountpoint(raw.root, subsystem)
+		mnt, err := FindCgroupMountpoint(raw.root, subsystem)
 		// If we didn't mount the subsystem, there is no point we make the path.
 		if err != nil {
 			return "", err
@@ -386,7 +385,7 @@ func (raw *cgroupData) path(subsystem string) (string, error) {
 	// Use GetOwnCgroupPath instead of GetInitCgroupPath, because the creating
 	// process could in container and shared pid namespace with host, and
 	// /proc/1/cgroup could point to whole other world of cgroups.
-	parentPath, err := cgroups.GetOwnCgroupPath(subsystem)
+	parentPath, err := GetOwnCgroupPath(subsystem)
 	if err != nil {
 		return "", err
 	}
@@ -401,7 +400,7 @@ func join(path string, pid int) error {
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return err
 	}
-	return cgroups.WriteCgroupProc(path, pid)
+	return WriteCgroupProc(path, pid)
 }
 
 func (m *manager) GetPaths() map[string]string {
@@ -410,20 +409,20 @@ func (m *manager) GetPaths() map[string]string {
 	return m.paths
 }
 
-func (m *manager) GetCgroups() (*cgroups.CgroupConfig, error) {
+func (m *manager) GetCgroups() (*CgroupConfig, error) {
 	return m.cgroups, nil
 }
 
-func (m *manager) GetFreezerState() (cgroups.FreezerState, error) {
+func (m *manager) GetFreezerState() (FreezerState, error) {
 	dir := m.Path("freezer")
 	// If the container doesn't have the freezer cgroup, say it's undefined.
 	if dir == "" {
-		return cgroups.Undefined, nil
+		return Undefined, nil
 	}
 	freezer := &FreezerGroup{}
 	return freezer.GetState(dir)
 }
 
 func (m *manager) Exists() bool {
-	return cgroups.PathExists(m.Path("devices"))
+	return PathExists(m.Path("devices"))
 }

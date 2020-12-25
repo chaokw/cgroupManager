@@ -1,10 +1,9 @@
 // +build linux
 
-package subsystem
+package cgroupManager
 
 import (
 	"testing"
-	cgroups "cgroupManager"
 )
 
 func TestCpusetSetCpus(t *testing.T) {
@@ -26,7 +25,7 @@ func TestCpusetSetCpus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := cgroups.GetCgroupParamString(helper.CgroupPath, "cpuset.cpus")
+	value, err := GetCgroupParamString(helper.CgroupPath, "cpuset.cpus")
 	if err != nil {
 		t.Fatalf("Failed to parse cpuset.cpus - %s", err)
 	}
@@ -55,7 +54,7 @@ func TestCpusetSetMems(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := cgroups.GetCgroupParamString(helper.CgroupPath, "cpuset.mems")
+	value, err := GetCgroupParamString(helper.CgroupPath, "cpuset.mems")
 	if err != nil {
 		t.Fatalf("Failed to parse cpuset.mems - %s", err)
 	}

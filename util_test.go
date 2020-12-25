@@ -1,18 +1,16 @@
 // +build linux
 
-package subsystem
+package cgroupManager
 
 import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
-
-	cgroups "cgroupManager"
 )
 
 func init() {
-	cgroups.TestMode = true
+	TestMode = true
 }
 
 type cgroupTestUtil struct {
@@ -25,9 +23,9 @@ type cgroupTestUtil struct {
 // Creates a new test util for the specified subsystem
 func NewCgroupTestUtil(subsystem string, t *testing.T) *cgroupTestUtil {
 	d := &cgroupData{
-		config: &cgroups.CgroupConfig{},
+		config: &CgroupConfig{},
 	}
-	d.config.Resources = &cgroups.Resources{}
+	d.config.Resources = &Resources{}
 	tempDir, err := ioutil.TempDir("", "cgroup_test")
 	if err != nil {
 		t.Fatal(err)
@@ -53,7 +51,7 @@ func (c *cgroupTestUtil) cleanup() {
 // Write the specified contents on the mock of the specified cgroup files.
 func (c *cgroupTestUtil) writeFileContents(fileContents map[string]string) {
 	for file, contents := range fileContents {
-		err := cgroups.WriteFile(c.CgroupPath, file, contents)
+		err := WriteFile(c.CgroupPath, file, contents)
 		if err != nil {
 			c.t.Fatal(err)
 		}

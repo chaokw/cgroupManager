@@ -1,11 +1,9 @@
 // +build linux
 
-package subsystem
+package cgroupManager
 
 import (
 	"testing"
-
-	cgroups "cgroupManager"
 )
 
 func TestFreezerSetState(t *testing.T) {
@@ -13,20 +11,20 @@ func TestFreezerSetState(t *testing.T) {
 	defer helper.cleanup()
 
 	helper.writeFileContents(map[string]string{
-		"freezer.state": string(cgroups.Frozen),
+		"freezer.state": string(Frozen),
 	})
 
-	helper.CgroupData.config.Resources.Freezer = cgroups.Thawed
+	helper.CgroupData.config.Resources.Freezer = Thawed
 	freezer := &FreezerGroup{}
 	if err := freezer.Set(helper.CgroupPath, helper.CgroupData.config); err != nil {
 		t.Fatal(err)
 	}
 
-	value, err := cgroups.GetCgroupParamString(helper.CgroupPath, "freezer.state")
+	value, err := GetCgroupParamString(helper.CgroupPath, "freezer.state")
 	if err != nil {
 		t.Fatalf("Failed to parse freezer.state - %s", err)
 	}
-	if value != string(cgroups.Thawed) {
+	if value != string(Thawed) {
 		t.Fatal("Got the wrong value, set freezer.state failed.")
 	}
 }
@@ -36,7 +34,7 @@ func TestFreezerSetInvalidState(t *testing.T) {
 	defer helper.cleanup()
 
 	const (
-		invalidArg cgroups.FreezerState = "Invalid"
+		invalidArg FreezerState = "Invalid"
 	)
 
 	helper.CgroupData.config.Resources.Freezer = invalidArg

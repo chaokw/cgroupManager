@@ -1,13 +1,11 @@
 // +build linux
 
-package subsystem
+package cgroupManager
 
 import (
 	"fmt"
 	"strconv"
 	"testing"
-
-	cgroups "cgroupManager"
 )
 
 func TestCpuSetShares(t *testing.T) {
@@ -29,7 +27,7 @@ func TestCpuSetShares(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	value, err := cgroups.GetCgroupParamUint(helper.CgroupPath, "cpu.shares")
+	value, err := GetCgroupParamUint(helper.CgroupPath, "cpu.shares")
 	if err != nil {
 		t.Fatalf("Failed to parse cpu.shares - %s", err)
 	}
@@ -58,7 +56,7 @@ func TestCpuApplyPid(t *testing.T) {
                 t.Fatal(err)
         }
 
-        value, err := cgroups.GetCgroupParamUint(helper.CgroupPath, "cpu.shares")
+        value, err := GetCgroupParamUint(helper.CgroupPath, "cpu.shares")
         if err != nil {
                 t.Fatalf("Failed to parse cpu.shares - %s", err)
         }
@@ -70,7 +68,7 @@ func TestCpuApplyPid(t *testing.T) {
 	cpu.AddPid(helper.CgroupPath, 1999)
 	cpu.AddPid(helper.CgroupPath, 2000)
 	cpu.AddPid(helper.CgroupPath, 2001)
-	pids, err := cgroups.GetPids(helper.CgroupPath)
+	pids, err := GetPids(helper.CgroupPath)
 	fmt.Println("pids: ", pids)
 }
 
@@ -105,7 +103,7 @@ func TestCpuSetBandWidth(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	quota, err := cgroups.GetCgroupParamUint(helper.CgroupPath, "cpu.cfs_quota_us")
+	quota, err := GetCgroupParamUint(helper.CgroupPath, "cpu.cfs_quota_us")
 	if err != nil {
 		t.Fatalf("Failed to parse cpu.cfs_quota_us - %s", err)
 	}
@@ -113,21 +111,21 @@ func TestCpuSetBandWidth(t *testing.T) {
 		t.Fatal("Got the wrong value, set cpu.cfs_quota_us failed.")
 	}
 
-	period, err := cgroups.GetCgroupParamUint(helper.CgroupPath, "cpu.cfs_period_us")
+	period, err := GetCgroupParamUint(helper.CgroupPath, "cpu.cfs_period_us")
 	if err != nil {
 		t.Fatalf("Failed to parse cpu.cfs_period_us - %s", err)
 	}
 	if period != periodAfter {
 		t.Fatal("Got the wrong value, set cpu.cfs_period_us failed.")
 	}
-	rtRuntime, err := cgroups.GetCgroupParamUint(helper.CgroupPath, "cpu.rt_runtime_us")
+	rtRuntime, err := GetCgroupParamUint(helper.CgroupPath, "cpu.rt_runtime_us")
 	if err != nil {
 		t.Fatalf("Failed to parse cpu.rt_runtime_us - %s", err)
 	}
 	if rtRuntime != rtRuntimeAfter {
 		t.Fatal("Got the wrong value, set cpu.rt_runtime_us failed.")
 	}
-	rtPeriod, err := cgroups.GetCgroupParamUint(helper.CgroupPath, "cpu.rt_period_us")
+	rtPeriod, err := GetCgroupParamUint(helper.CgroupPath, "cpu.rt_period_us")
 	if err != nil {
 		t.Fatalf("Failed to parse cpu.rt_period_us - %s", err)
 	}
@@ -153,13 +151,13 @@ func TestCpuStats(t *testing.T) {
 	})
 
 	cpu := &CpuGroup{}
-	actualStats := *cgroups.NewStats()
+	actualStats := *NewStats()
 	err := cpu.GetStats(helper.CgroupPath, &actualStats)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expectedStats := cgroups.ThrottlingData{
+	expectedStats := ThrottlingData{
 		Periods:          nrPeriods,
 		ThrottledPeriods: nrThrottled,
 		ThrottledTime:    throttledTime}
@@ -174,7 +172,7 @@ func TestNoCpuStatFile(t *testing.T) {
 	defer helper.cleanup()
 
 	cpu := &CpuGroup{}
-	actualStats := *cgroups.NewStats()
+	actualStats := *NewStats()
 	err := cpu.GetStats(helper.CgroupPath, &actualStats)
 	if err != nil {
 		t.Fatal("Expected not to fail, but did")
@@ -192,7 +190,7 @@ func TestInvalidCpuStat(t *testing.T) {
 	})
 
 	cpu := &CpuGroup{}
-	actualStats := *cgroups.NewStats()
+	actualStats := *NewStats()
 	err := cpu.GetStats(helper.CgroupPath, &actualStats)
 	if err == nil {
 		t.Fatal("Expected failed stat parsing.")
@@ -224,21 +222,21 @@ func TestCpuSetRtSchedAtApply(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rtRuntime, err := cgroups.GetCgroupParamUint(helper.CgroupPath, "cpu.rt_runtime_us")
+	rtRuntime, err := GetCgroupParamUint(helper.CgroupPath, "cpu.rt_runtime_us")
 	if err != nil {
 		t.Fatalf("Failed to parse cpu.rt_runtime_us - %s", err)
 	}
 	if rtRuntime != rtRuntimeAfter {
 		t.Fatal("Got the wrong value, set cpu.rt_runtime_us failed.")
 	}
-	rtPeriod, err := cgroups.GetCgroupParamUint(helper.CgroupPath, "cpu.rt_period_us")
+	rtPeriod, err := GetCgroupParamUint(helper.CgroupPath, "cpu.rt_period_us")
 	if err != nil {
 		t.Fatalf("Failed to parse cpu.rt_period_us - %s", err)
 	}
 	if rtPeriod != rtPeriodAfter {
 		t.Fatal("Got the wrong value, set cpu.rt_period_us failed.")
 	}
-	pid, err := cgroups.GetCgroupParamUint(helper.CgroupPath, "cgroup.procs")
+	pid, err := GetCgroupParamUint(helper.CgroupPath, "cgroup.procs")
 	if err != nil {
 		t.Fatalf("Failed to parse cgroup.procs - %s", err)
 	}

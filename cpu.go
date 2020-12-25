@@ -1,6 +1,6 @@
 // +build linux
 
-package subsystem
+package cgroupManager
 
 import (
 	"bufio"
@@ -8,17 +8,16 @@ import (
 	"os"
 	"strconv"
 	"path/filepath"
-	cgroups "cgroupManager"
 )
 
 type CpuGroup struct {
-	Config    *cgroups.CgroupConfig
+	Config    *CgroupConfig
         CgroupPath string
 }
 
 func NewCpuCgroup(path string) *CpuGroup {
-	c := &cgroups.CgroupConfig{
-                Resources: &cgroups.Resources{},
+	c := &CgroupConfig{
+                Resources: &Resources{},
         }
         root, err := getCgroupRoot()
         if err != nil {
@@ -29,6 +28,10 @@ func NewCpuCgroup(path string) *CpuGroup {
                 fmt.Println(err)
         }
         actualPath := filepath.Join(subsystemPath, path)
+        if err != nil {
+                fmt.Println(err)
+        }
+	err = os.MkdirAll(actualPath, 0755)
         if err != nil {
                 fmt.Println(err)
         }
@@ -49,34 +52,34 @@ func (s *CpuGroup) Apply(path string, d *cgroupData) error {
 	if err := s.SetRtSched(path, d.config); err != nil {
 		return err
 	}
-	return cgroups.WriteCgroupProc(path, d.pid)
+	return WriteCgroupProc(path, d.pid)
 }
 
 func (s *CpuGroup) AddPid(path string, pid int) error {
-	return cgroups.WriteCgroupProc(path, pid)
+	return WriteCgroupProc(path, pid)
 }
 
-func (s *CpuGroup) SetRtSched(path string, cgroup *cgroups.CgroupConfig) error {
+func (s *CpuGroup) SetRtSched(path string, cgroup *CgroupConfig) error {
 	if cgroup.Resources.CpuRtPeriod != 0 {
-		if err := cgroups.WriteFile(path, "cpu.rt_period_us", strconv.FormatUint(cgroup.Resources.CpuRtPeriod, 10)); err != nil {
+		if err := WriteFile(path, "cpu.rt_period_us", strconv.FormatUint(cgroup.Resources.CpuRtPeriod, 10)); err != nil {
 			return err
 		}
 	}
 	if cgroup.Resources.CpuRtRuntime != 0 {
-		if err := cgroups.WriteFile(path, "cpu.rt_runtime_us", strconv.FormatInt(cgroup.Resources.CpuRtRuntime, 10)); err != nil {
+		if err := WriteFile(path, "cpu.rt_runtime_us", strconv.FormatInt(cgroup.Resources.CpuRtRuntime, 10)); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *CpuGroup) Set(path string, cgroup *cgroups.CgroupConfig) error {
+func (s *CpuGroup) Set(path string, cgroup *CgroupConfig) error {
 	if cgroup.Resources.CpuShares != 0 {
 		shares := cgroup.Resources.CpuShares
-		if err := cgroups.WriteFile(path, "cpu.shares", strconv.FormatUint(shares, 10)); err != nil {
+		if err := WriteFile(path, "cpu.shares", strconv.FormatUint(shares, 10)); err != nil {
 			return err
 		}
-		sharesRead, err := cgroups.GetCgroupParamUint(path, "cpu.shares")
+		sharesRead, err := GetCgroupParamUint(path, "cpu.shares")
 		if err != nil {
 			return err
 		}
@@ -87,20 +90,20 @@ func (s *CpuGroup) Set(path string, cgroup *cgroups.CgroupConfig) error {
 		}
 	}
 	if cgroup.Resources.CpuPeriod != 0 {
-		if err := cgroups.WriteFile(path, "cpu.cfs_period_us", strconv.FormatUint(cgroup.Resources.CpuPeriod, 10)); err != nil {
+		if err := WriteFile(path, "cpu.cfs_period_us", strconv.FormatUint(cgroup.Resources.CpuPeriod, 10)); err != nil {
 			return err
 		}
 	}
 	if cgroup.Resources.CpuQuota != 0 {
-		if err := cgroups.WriteFile(path, "cpu.cfs_quota_us", strconv.FormatInt(cgroup.Resources.CpuQuota, 10)); err != nil {
+		if err := WriteFile(path, "cpu.cfs_quota_us", strconv.FormatInt(cgroup.Resources.CpuQuota, 10)); err != nil {
 			return err
 		}
 	}
 	return s.SetRtSched(path, cgroup)
 }
 
-func (s *CpuGroup) GetStats(path string, stats *cgroups.Stats) error {
-	f, err := cgroups.OpenFile(path, "cpu.stat", os.O_RDONLY)
+func (s *CpuGroup) GetStats(path string, stats *Stats) error {
+	f, err := OpenFile(path, "cpu.stat", os.O_RDONLY)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -111,7 +114,7 @@ func (s *CpuGroup) GetStats(path string, stats *cgroups.Stats) error {
 
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
-		t, v, err := cgroups.GetCgroupParamKeyValue(sc.Text())
+		t, v, err := GetCgroupParamKeyValue(sc.Text())
 		if err != nil {
 			return err
 		}
