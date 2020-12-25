@@ -5,13 +5,39 @@ package cgroupManager
 import (
 	"errors"
 	"fmt"
+	"golang.org/x/sys/unix"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
-	"golang.org/x/sys/unix"
 )
 
 type FreezerGroup struct {
+	Config     *CgroupConfig
+	CgroupPath string
+}
+
+func NewFreezerCgroup(path string) *FreezerGroup {
+	c := &CgroupConfig{
+		Resources: &Resources{},
+	}
+	root, err := getCgroupRoot()
+	if err != nil {
+		fmt.Printf("couldn't get cgroup root: %v", err)
+	}
+	subsystemPath := filepath.Join(root, "freezer")
+	if err != nil {
+		fmt.Println(err)
+	}
+	actualPath := filepath.Join(subsystemPath, path)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = os.MkdirAll(actualPath, 0755)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return &FreezerGroup{Config: c, CgroupPath: actualPath}
 }
 
 func (s *FreezerGroup) Name() string {
@@ -23,7 +49,7 @@ func (s *FreezerGroup) Apply(path string, d *cgroupData) error {
 }
 
 func (s *FreezerGroup) AddPid(path string, pid int) error {
-        return WriteCgroupProc(path, pid)
+	return WriteCgroupProc(path, pid)
 }
 
 func (s *FreezerGroup) Set(path string, cgroup *CgroupConfig) error {
@@ -55,6 +81,10 @@ func (s *FreezerGroup) Set(path string, cgroup *CgroupConfig) error {
 
 func (s *FreezerGroup) GetStats(path string, stats *Stats) error {
 	return nil
+}
+
+func (s *FreezerGroup) Cleanup() {
+	os.RemoveAll(s.CgroupPath)
 }
 
 func (s *FreezerGroup) GetState(path string) (FreezerState, error) {

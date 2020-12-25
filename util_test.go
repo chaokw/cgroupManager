@@ -16,8 +16,8 @@ func init() {
 type cgroupTestUtil struct {
 	CgroupData *cgroupData
 	CgroupPath string
-	tempDir string
-	t       *testing.T
+	tempDir    string
+	t          *testing.T
 }
 
 // Creates a new test util for the specified subsystem

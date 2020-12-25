@@ -4,13 +4,13 @@ package cgroupManager
 
 import (
 	"fmt"
+	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
-	"io/ioutil"
-	"math"
 )
 
 const (

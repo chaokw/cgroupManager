@@ -29,6 +29,31 @@ const (
 )
 
 type CpuacctGroup struct {
+	Config     *CgroupConfig
+	CgroupPath string
+}
+
+func NewCpuAcctCgroup(path string) *CpuacctGroup {
+	c := &CgroupConfig{
+		Resources: &Resources{},
+	}
+	root, err := getCgroupRoot()
+	if err != nil {
+		fmt.Printf("couldn't get cgroup root: %v", err)
+	}
+	subsystemPath := filepath.Join(root, "cpuacct")
+	if err != nil {
+		fmt.Println(err)
+	}
+	actualPath := filepath.Join(subsystemPath, path)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = os.MkdirAll(actualPath, 0755)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return &CpuacctGroup{Config: c, CgroupPath: actualPath}
 }
 
 func (s *CpuacctGroup) Name() string {
@@ -36,7 +61,7 @@ func (s *CpuacctGroup) Name() string {
 }
 
 func (s *CpuacctGroup) AddPid(path string, pid int) error {
-        return WriteCgroupProc(path, pid)
+	return WriteCgroupProc(path, pid)
 }
 
 func (s *CpuacctGroup) Apply(path string, d *cgroupData) error {

@@ -3,6 +3,7 @@
 package cgroupManager
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -11,6 +12,31 @@ import (
 )
 
 type CpusetGroup struct {
+	Config     *CgroupConfig
+	CgroupPath string
+}
+
+func NewCpuSetCgroup(path string) *CpusetGroup {
+	c := &CgroupConfig{
+		Resources: &Resources{},
+	}
+	root, err := getCgroupRoot()
+	if err != nil {
+		fmt.Printf("couldn't get cgroup root: %v", err)
+	}
+	subsystemPath := filepath.Join(root, "cpuset")
+	if err != nil {
+		fmt.Println(err)
+	}
+	actualPath := filepath.Join(subsystemPath, path)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = os.MkdirAll(actualPath, 0755)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return &CpusetGroup{Config: c, CgroupPath: actualPath}
 }
 
 func (s *CpusetGroup) Name() string {
@@ -22,7 +48,7 @@ func (s *CpusetGroup) Apply(path string, d *cgroupData) error {
 }
 
 func (s *CpusetGroup) AddPid(path string, pid int) error {
-        return WriteCgroupProc(path, pid)
+	return WriteCgroupProc(path, pid)
 }
 
 func (s *CpusetGroup) Set(path string, cgroup *CgroupConfig) error {

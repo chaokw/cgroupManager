@@ -4,16 +4,16 @@ package cgroupManager
 
 import (
 	"bytes"
-	"os"
-	"strings"
-	"sync"
 	"fmt"
-	"math"
-	"strconv"
-         securejoin "github.com/cyphar/filepath-securejoin"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	"math"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
 )
 
 const (
@@ -22,11 +22,11 @@ const (
 )
 
 var (
-	TestMode bool
-	cgroupFd     int = -1
-	prepOnce     sync.Once
-	prepErr      error
-	resolveFlags uint64
+	TestMode          bool
+	cgroupFd          int = -1
+	prepOnce          sync.Once
+	prepErr           error
+	resolveFlags      uint64
 	ErrNotValidFormat = errors.New("line is not a valid key value format")
 )
 
@@ -101,7 +101,6 @@ func openWithSecureJoin(dir, file string, flags int, mode os.FileMode) (*os.File
 
 	return os.OpenFile(path, flags, mode)
 }
-
 
 // WriteFile writes data to a cgroup file in dir.
 // It is supposed to be used for cgroup files only.

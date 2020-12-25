@@ -6,35 +6,35 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strconv"
 	"path/filepath"
+	"strconv"
 )
 
 type CpuGroup struct {
-	Config    *CgroupConfig
-        CgroupPath string
+	Config     *CgroupConfig
+	CgroupPath string
 }
 
 func NewCpuCgroup(path string) *CpuGroup {
 	c := &CgroupConfig{
-                Resources: &Resources{},
-        }
-        root, err := getCgroupRoot()
-        if err != nil {
-                fmt.Printf("couldn't get cgroup root: %v", err)
-        }
+		Resources: &Resources{},
+	}
+	root, err := getCgroupRoot()
+	if err != nil {
+		fmt.Printf("couldn't get cgroup root: %v", err)
+	}
 	subsystemPath := filepath.Join(root, "cpu")
-        if err != nil {
-                fmt.Println(err)
-        }
-        actualPath := filepath.Join(subsystemPath, path)
-        if err != nil {
-                fmt.Println(err)
-        }
+	if err != nil {
+		fmt.Println(err)
+	}
+	actualPath := filepath.Join(subsystemPath, path)
+	if err != nil {
+		fmt.Println(err)
+	}
 	err = os.MkdirAll(actualPath, 0755)
-        if err != nil {
-                fmt.Println(err)
-        }
+	if err != nil {
+		fmt.Println(err)
+	}
 	return &CpuGroup{Config: c, CgroupPath: actualPath}
 }
 
@@ -133,5 +133,5 @@ func (s *CpuGroup) GetStats(path string, stats *Stats) error {
 }
 
 func (s *CpuGroup) Cleanup() {
-        os.RemoveAll(s.CgroupPath)
+	os.RemoveAll(s.CgroupPath)
 }

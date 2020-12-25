@@ -30,16 +30,16 @@ var (
 )
 
 func CleanPath(path string) string {
-        if path == "" {
-                return ""
-        }
+	if path == "" {
+		return ""
+	}
 
-        path = filepath.Clean(path)
-        if !filepath.IsAbs(path) {
-                path = filepath.Clean(string(os.PathSeparator) + path)
-                path, _ = filepath.Rel(string(os.PathSeparator), path)
-        }
-        return filepath.Clean(path)
+	path = filepath.Clean(path)
+	if !filepath.IsAbs(path) {
+		path = filepath.Clean(string(os.PathSeparator) + path)
+		path, _ = filepath.Rel(string(os.PathSeparator), path)
+	}
+	return filepath.Clean(path)
 }
 
 func IsCgroup2UnifiedMode() bool {

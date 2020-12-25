@@ -38,32 +38,32 @@ func TestCpuSetShares(t *testing.T) {
 }
 
 func TestCpuApplyPid(t *testing.T) {
-        helper := NewCgroupTestUtil("cpu", t)
-        defer helper.cleanup()
+	helper := NewCgroupTestUtil("cpu", t)
+	defer helper.cleanup()
 
-        const (
-                sharesBefore = 1024
-                sharesAfter  = 3789
-        )
+	const (
+		sharesBefore = 1024
+		sharesAfter  = 3789
+	)
 
-        helper.writeFileContents(map[string]string{
-                "cpu.shares": strconv.Itoa(sharesBefore),
-        })
+	helper.writeFileContents(map[string]string{
+		"cpu.shares": strconv.Itoa(sharesBefore),
+	})
 
-        helper.CgroupData.config.Resources.CpuShares = sharesAfter
-        cpu := &CpuGroup{}
-        if err := cpu.Set(helper.CgroupPath, helper.CgroupData.config); err != nil {
-                t.Fatal(err)
-        }
+	helper.CgroupData.config.Resources.CpuShares = sharesAfter
+	cpu := &CpuGroup{}
+	if err := cpu.Set(helper.CgroupPath, helper.CgroupData.config); err != nil {
+		t.Fatal(err)
+	}
 
-        value, err := GetCgroupParamUint(helper.CgroupPath, "cpu.shares")
-        if err != nil {
-                t.Fatalf("Failed to parse cpu.shares - %s", err)
-        }
+	value, err := GetCgroupParamUint(helper.CgroupPath, "cpu.shares")
+	if err != nil {
+		t.Fatalf("Failed to parse cpu.shares - %s", err)
+	}
 
-        if value != sharesAfter {
-                t.Fatal("Got the wrong value, set cpu.shares failed.")
-        }
+	if value != sharesAfter {
+		t.Fatal("Got the wrong value, set cpu.shares failed.")
+	}
 
 	cpu.AddPid(helper.CgroupPath, 1999)
 	cpu.AddPid(helper.CgroupPath, 2000)
@@ -163,8 +163,8 @@ func TestCpuStats(t *testing.T) {
 		ThrottledTime:    throttledTime}
 
 	if expectedStats != actualStats.CpuStats.ThrottlingData {
-                t.Errorf("Expected throttling data %v but found %v\n", expectedStats, actualStats.CpuStats.ThrottlingData)
-        }
+		t.Errorf("Expected throttling data %v but found %v\n", expectedStats, actualStats.CpuStats.ThrottlingData)
+	}
 }
 
 func TestNoCpuStatFile(t *testing.T) {
